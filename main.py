@@ -132,7 +132,7 @@ def parse_mtproto_proxy(proxy_str: str):
         print(f"Неверный порт в MTProto прокси: {port_str}")
         return None
 
-    return ("mtproto", host, port, secret, True, None, None)
+    return (host, port, secret)
 
 
 def main():
