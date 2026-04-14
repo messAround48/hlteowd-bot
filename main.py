@@ -99,12 +99,14 @@ async def handle_callback(event):
         await event.edit(message, parse_mode="md")
 
 
-def parse_mtproto_proxy(proxy_str: str) -> dict | None:
+def parse_mtproto_proxy(proxy_str: str):
     """Парсит строку MTProto прокси в формат для Telethon.
 
     Форматы:
         - mtproxy://secret@host:port
         - secret@host:port
+
+    Возвращает кортеж (proxy_type, addr, port, secret, rdns, username, password)
     """
     if not proxy_str:
         return None
@@ -130,12 +132,7 @@ def parse_mtproto_proxy(proxy_str: str) -> dict | None:
         print(f"Неверный порт в MTProto прокси: {port_str}")
         return None
 
-    return {
-        "proxy_type": "mtproto",
-        "addr": host,
-        "port": port,
-        "secret": secret,
-    }
+    return ("mtproto", host, port, secret, True, None, None)
 
 
 def main():
