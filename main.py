@@ -105,7 +105,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     """Запуск бота."""
-    if BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
+    if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
         print("Ошибка: установите токен бота в переменную окружения TG_BOT_TOKEN")
         print("Или замените YOUR_BOT_TOKEN_HERE в коде на ваш токен от @BotFather")
         return
