@@ -26,6 +26,8 @@ DAY_NAMES = {
 
 # Токен бота (получить у @BotFather)
 BOT_TOKEN = os.getenv("TG_BOT_TOKEN", "")
+API_ID = int(os.getenv("API_ID", ""))
+API_HASH = os.getenv("API_HASH", "")
 
 # MTProto прокси
 MT_PROTO_PROXY = os.getenv("MT_PROTO_PROXY", "")  # формат: mtproxy://secret@host:port или secret@host:port
@@ -142,7 +144,7 @@ def main():
         return
 
     connection_proxy = parse_mtproto_proxy(MT_PROTO_PROXY)
-    client = TelegramClient("hlteowd-bot", 6, "a7899e410f0c6c24623890290306d947", connection=connection.ConnectionTcpMTProxyRandomizedIntermediate, proxy=connection_proxy)
+    client = TelegramClient("hlteowd-bot", API_ID, API_HASH, connection=connection.ConnectionTcpMTProxyRandomizedIntermediate, proxy=connection_proxy)
     
     client.add_event_handler(handle_start, events.NewMessage(pattern="/start"))
     client.add_event_handler(handle_callback, events.CallbackQuery())
