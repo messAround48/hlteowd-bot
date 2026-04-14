@@ -1,7 +1,7 @@
 import os
+import asyncio
 from datetime import datetime, time
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telethon import TelegramClient, Button, events
 
 # Настройки рабочего дня по дням недели (0=понедельник, 6=воскресенье)
 WORK_SCHEDULE = {
@@ -25,7 +25,10 @@ DAY_NAMES = {
 }
 
 # Токен бота (получить у @BotFather)
-BOT_TOKEN = os.getenv("TG_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+BOT_TOKEN = os.getenv("TG_BOT_TOKEN", "")
+
+# MTProto прокси
+MT_PROTO_PROXY = os.getenv("MT_PROTO_PROXY", "")  # формат: mtproxy://secret@host:port или secret@host:port
 
 
 def get_workday_progress() -> str:
@@ -78,46 +81,82 @@ def get_workday_progress() -> str:
     return message
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_start(event):
     """Обработчик команды /start."""
-    keyboard = [
-        [InlineKeyboardButton("📊 Прогресс рабочего дня", callback_data="progress")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
+    keyboard = [[Button.inline("📊 Прогресс рабочего дня", b"progress")]]
+    await event.respond(
         "Привет! Я бот для отслеживания прогресса рабочего дня.\n"
         "Нажми на кнопку ниже, чтобы узнать, сколько осталось до конца рабочего дня:",
-        reply_markup=reply_markup,
+        buttons=keyboard,
     )
 
 
-async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_callback(event):
     """Обработчик нажатия на кнопку."""
-    query = update.callback_query
-    await query.answer()
+    if event.data == b"progress":
+        await event.answer()
+        message = get_workday_progress()
+        await event.edit(message, parse_mode="md")
 
-    message = get_workday_progress()
-    await query.edit_message_text(
-        text=message,
-        parse_mode="Markdown",
-    )
+
+def parse_mtproto_proxy(proxy_str: str) -> dict | None:
+    """Парсит строку MTProto прокси в формат для Telethon.
+
+    Форматы:
+        - mtproxy://secret@host:port
+        - secret@host:port
+    """
+    if not proxy_str:
+        return None
+
+    # Убираем префикс если есть
+    proxy_str = proxy_str.replace("mtproxy://", "")
+
+    parts = proxy_str.rsplit("@", 1)
+    if len(parts) != 2:
+        print(f"Неверный формат MTProto прокси: {proxy_str}")
+        return None
+
+    secret, host_port = parts
+
+    if ":" not in host_port:
+        print(f"Неверный формат MTProto прокси (нет порта): {proxy_str}")
+        return None
+
+    host, port_str = host_port.rsplit(":", 1)
+    try:
+        port = int(port_str)
+    except ValueError:
+        print(f"Неверный порт в MTProto прокси: {port_str}")
+        return None
+
+    return {
+        "proxy_type": "mtproto",
+        "addr": host,
+        "port": port,
+        "secret": secret,
+    }
 
 
 def main():
     """Запуск бота."""
-    if not BOT_TOKEN or BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
+    if not BOT_TOKEN:
         print("Ошибка: установите токен бота в переменную окружения TG_BOT_TOKEN")
-        print("Или замените YOUR_BOT_TOKEN_HERE в коде на ваш токен от @BotFather")
         return
 
-    application = Application.builder().token(BOT_TOKEN).build()
+    proxy = parse_mtproto_proxy(MT_PROTO_PROXY)
 
-    # Регистрация обработчиков
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(button_callback))
+    client = TelegramClient("hlteowd-bot", 6, "a7899e410f0c6c24623890290306d947")
+
+    if proxy:
+        client.set_proxy(proxy)
+
+    client.add_event_handler(handle_start, events.NewMessage(pattern="/start"))
+    client.add_event_handler(handle_callback, events.CallbackQuery())
 
     print("Бот запущен...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    client.start(bot_token=BOT_TOKEN)
+    client.run_until_disconnected()
 
 
 if __name__ == "__main__":

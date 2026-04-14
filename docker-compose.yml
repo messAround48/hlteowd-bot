@@ -4,4 +4,5 @@ services:
     container_name: hlteowd-bot
     environment:
       - TG_BOT_TOKEN=${TG_BOT_TOKEN}
+      - MT_PROTO_PROXY=${MT_PROTO_PROXY:-}
     restart: unless-stopped
